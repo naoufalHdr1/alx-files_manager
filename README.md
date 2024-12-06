@@ -118,6 +118,14 @@ npm test
 - `get(key)`: Retrieves value for a given key.
 - `set(key, value, duration)`: Stores a key-value pair with expiration.
 - `del(key)`: Deletes a key from Redis.
+3. Export: Create and export an instance of `RedisClient` as `redisClient`.
 
-## Project Team
-Naoufal Hadra
+### Task 1: MongoDB utils
+
+1. Constructor:
+- Connects to MongoDB using environment variables (`DB_HOST`, `DB_PORT`, `DB_DATABASE`)
+2. Methods:
+- `isAlive()`: Checks MongoDB connection status.
+- `nbUsers()`: Returns the number of documents in the users collection.
+- `nbFiles()`: Returns the number of documents in the files collection.
+3. Export: Create and export an instance of `DBClient` as `dbClient`.
