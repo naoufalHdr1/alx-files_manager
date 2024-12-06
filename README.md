@@ -107,5 +107,17 @@ Run unit tests using Mocha:
 npm test
 ```
 
+## Tasks
+
+### Task 0: Redis utils
+
+1. Constructor:
+- Connects to Redis and logs errors.
+2. Methods:
+- `isAlive()`: Checks Redis connection status.
+- `get(key)`: Retrieves value for a given key.
+- `set(key, value, duration)`: Stores a key-value pair with expiration.
+- `del(key)`: Deletes a key from Redis.
+
 ## Project Team
 Naoufal Hadra
