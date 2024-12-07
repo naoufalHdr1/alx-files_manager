@@ -1,33 +1,30 @@
 // controllers/AuthController.js
-import dbClient from '../utils/db';
-import redisClient from '../utils/redis';
 import sha1 from 'sha1';
 import { v4 as uuidv4 } from 'uuid';
 import { ObjectId } from 'mongodb';
+import redisClient from '../utils/redis';
+import dbClient from '../utils/db';
 
 class AuthController {
-  
   /**
    * @route GET /connect
    * @description Signs in the user by generating a new authentication token
    *
-   * @header Authorization - Basic Authentication header containing email and password (Base64 encoded)
+   * @header Authorization - Basic Authentication header containing email and password (Base64)
    * @returns {Object} - The token object: { token: <auth_token> }
    * @status 200 - Successfully generated a new authentication token
    * @status 401 - Unauthorized if invalid credentials are provided
    */
   static async getConnect(req, res) {
-    const authorization = req.headers.authorization;
-    if (!authorization)
-      return res.status(401).json({ error: 'Unauthorized' });
+    const { authorization } = req.headers;
+    if (!authorization) return res.status(401).json({ error: 'Unauthorized' });
 
     // Decode Base64 authorization header
     const base64Credentials = authorization.split(' ')[1];
     const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
     const [email, password] = credentials.split(':');
 
-    if (!email || !password)
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (!email || !password) return res.status(401).json({ error: 'Unauthorized' });
 
     const hashedPassword = sha1(password);
 
@@ -38,10 +35,10 @@ class AuthController {
 
       // Generate Token and store it in Redis
       const token = uuidv4();
-      await redisClient.set(`auth_${token}`, user._id.toString(), 24*60*60)
+      await redisClient.set(`auth_${token}`, user._id.toString(), 24 * 60 * 60);
 
-      return res.status(200).json({ token  });
-    } catch(err) {
+      return res.status(200).json({ token });
+    } catch (err) {
       console.error('Database error during authentication:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
@@ -62,14 +59,14 @@ class AuthController {
 
     try {
       // Retrieve the user id based on the token
-      const key = `auth_${token}`
+      const key = `auth_${token}`;
       const userId = await redisClient.get(key);
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
       await redisClient.del(key);
 
       return res.status(204).send();
-    } catch(err) {
+    } catch (err) {
       console.error('Error during sign-out:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
@@ -86,7 +83,7 @@ class AuthController {
 
     try {
       // Retrieve the user id based on the token
-      const key = `auth_${token}`
+      const key = `auth_${token}`;
       const userId = await redisClient.get(key);
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -97,9 +94,9 @@ class AuthController {
 
       return res.json({
         id: user._id,
-        email: user.email
+        email: user.email,
       });
-    } catch(err) {
+    } catch (err) {
       console.error('Error during sign-out:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
