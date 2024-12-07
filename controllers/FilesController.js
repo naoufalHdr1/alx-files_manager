@@ -39,7 +39,7 @@ class FilesController {
           .collection('files')
           .findOne({ _id: parentObjectId });
         if (!parentFile) return res.status(400).json({ error: 'Parent not found' });
-        if (!parentFile.type !== 'folder') return res.status(400).json({ error: 'Parent is not a folder' });
+        if (parentFile.type !== 'folder') return res.status(400).json({ error: 'Parent is not a folder' });
       }
 
       const fileDocument = {
