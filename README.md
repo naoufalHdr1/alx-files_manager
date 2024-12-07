@@ -154,3 +154,16 @@ npm test
 - Save `email` and hashed `password` to `users` collection.
 4. Response:
 - Return `201` with `id` and `email`.
+
+### Task 4: Authenticate a user
+
+1. Routes (`routes/index.js`):
+- `GET /connect` → `AuthController.getConnect`.
+- `GET /disconnect` → `AuthController.getDisconnect`.
+- `GET /users/me` → `UserController.getMe`.
+2. Controllers:
+  - **AuthController**:
+    - `GET /connect`: Authenticate via Basic Auth, generate token, store in Redis for 24h, return token (`200`).
+    - `GET /disconnect`: Sign out by deleting token from Redis, return `204` or `401` if not found.
+  - **UserController**:
+    - `GET /users/me`: Retrieve user by token, return user data or `401`.
