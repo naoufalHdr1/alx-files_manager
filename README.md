@@ -167,3 +167,16 @@ npm test
     - `GET /disconnect`: Sign out by deleting token from Redis, return `204` or `401` if not found.
   - **UserController**:
     - `GET /users/me`: Retrieve user by token, return user data or `401`.
+
+### Task 5: First file
+
+1. Route:
+- `POST /files` → `FilesController.postUpload`.
+2. Controller:
+  - Validation:
+    - Authenticate via token (`401 Unauthorized if invalid`).
+    - Validate `name` (`400 Missing name`), `type` (`400 Missing/invalid type`), and `data` for `file/image` (`400 Missing data`).
+    - Check `parentId` if provided (`400 Parent not found` or `400 Parent is not a folder`).
+  - File Handling:
+    - `folder`: Save in DB, return `201 Created`.
+    - `file/image`: Save locally (`FOLDER_PATH or /tmp/files_manager`), store absolute path in DB, return `201 Created`.

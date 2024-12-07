@@ -88,7 +88,7 @@ class AuthController {
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
       // Find the user based on the ID retrieved from Redis
-      const _id = ObjectId(userId);
+      const _id = new ObjectId(userId);
       const user = await dbClient.db.collection('users').findOne({ _id });
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
