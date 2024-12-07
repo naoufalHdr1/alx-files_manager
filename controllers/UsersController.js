@@ -6,7 +6,7 @@ class UsersController {
   /**
    * POST /users - Creates a new user in the database.
    *
-   * @param {Object} req - The request object, containing email and password in the body.
+   * @param {Object} req - The req object, containing email and password in the body.
    * @param {Object} res - The response object.
    */
   static async postNew(req, res) {
