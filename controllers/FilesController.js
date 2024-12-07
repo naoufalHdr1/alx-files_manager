@@ -16,7 +16,6 @@ class FilesController {
    */
   static async postUpload(req, res) {
     const token = req.header('X-Token');
-    if (!token) return res.status(401).json({ error: 'Unauthorize' });
 
     try {
       // Validate user token
@@ -68,15 +67,80 @@ class FilesController {
       fileDocument.id = result.insertedId;
 
       return res.status(201).json({
-        id: fileDocument.id,
-        userId: fileDocument.userId,
+        id: fileDocument.id.toString(),
+        userId: fileDocument.userId.toString(),
         name: fileDocument.name,
         type: fileDocument.type,
         isPublic: fileDocument.isPublic,
-        parentId: fileDocument.parentId,
+        parentId: fileDocument.parentId.toString(),
       });
     } catch (err) {
       console.error('Error during file upload:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  static async getShow(req, res) {
+    const token = req.header('X-Token');
+    const fileId = req.params.id;
+
+    try {
+      // Validate token
+      const userId = await redisClient.get(`auth_${token}`);
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      // Fetch file
+      const file = await dbClient.db.collection('files').findOne({
+        _id: ObjectId(fileId),
+        userId: ObjectId(userId),
+      });
+      if (!file) return res.status(404).json({ error: 'Not found' });
+
+      return res.status(200).json(file);
+    } catch (err) {
+      console.error('Error during fetching file:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  static async getIndex(req, res) {
+    const token = req.header('X-Token');
+    const { parentId = '0', page = 0 } = req.query;
+    const PAGE_SIZE = 20;
+
+    try {
+      // Validate token
+      const userId = await redisClient.get(`auth_${token}`);
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      // Build match filter
+      const matchFilter = {
+        userId: ObjectId(userId),
+        parentId: parentId === '0' ? '0' : ObjectId(parentId),
+      };
+
+      // Pagination and filtering
+      const files = await dbClient.db.collection('files')
+        .aggregate([
+          { $match: matchFilter },
+          { $skip: parseInt(page, 10) * PAGE_SIZE },
+          { $limit: PAGE_SIZE },
+        ])
+        .toArray();
+
+      // Transform output
+      const response = files.map((file) => ({
+        id: file._id.toString(),
+        userId: file.userId.toString(),
+        name: file.name,
+        type: file.type,
+        isPublic: file.isPublic,
+        parentId: file.parentId,
+      }));
+
+      return res.status(200).json(response);
+    } catch (err) {
+      console.error('Error during fetching files:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }

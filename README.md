@@ -180,3 +180,13 @@ npm test
   - File Handling:
     - `folder`: Save in DB, return `201 Created`.
     - `file/image`: Save locally (`FOLDER_PATH or /tmp/files_manager`), store absolute path in DB, return `201 Created`.
+
+### Task 6: Get and list file
+
+1. Routes:
+- `GET /files/:id` → Fetch file by ID.
+- `GET /files` → Fetch files with pagination.
+2. Controller:
+- Authenticate via token (`401 Unauthorized` if invalid).
+- Return file document (`404 Not Found` if unavailable).
+- Support `parentId` (default: `0`) and pagination (20 items/page).
