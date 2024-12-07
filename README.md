@@ -129,3 +129,28 @@ npm test
 - `nbUsers()`: Returns the number of documents in the users collection.
 - `nbFiles()`: Returns the number of documents in the files collection.
 3. Export: Create and export an instance of `DBClient` as `dbClient`.
+
+### Task 2: First API
+
+1. Server (`server.js`):
+- Start Express on `PORT` (default: `5000`).
+- Load routes from `routes/index.js`.
+2. Routes (`routes/index.js`):
+- `GET /status` → `AppController.getStatus`.
+- `GET /stats` → `AppController.getStats`.
+3. Controllers (`AppController.js`):
+- `GET /status`: Return `{ "redis": true, "db": true }`.
+- `GET /stats`: Return `{ "users": X, "files": Y }` using DB counts.
+
+### Task 3: Create a new user
+
+1. Endpoint:
+- Add `POST /users` in `routes/index.js` → `UsersController.postNew`.
+2. Validation:
+- Missing email/password → Return `400` with appropriate error.
+- Email exists → Return `400` with `Already exist`.
+3. Logic:
+- Hash password with SHA1.
+- Save `email` and hashed `password` to `users` collection.
+4. Response:
+- Return `201` with `id` and `email`.
