@@ -200,3 +200,16 @@ npm test
 - Authenticate via token (`401 Unauthorized` if invalid).
 - Return `404 Not Found` if no file linked to user and ID.
 - Update and return file document (`200 OK`) with the updated `isPublic` status.
+
+### Task 8: File data
+
+1. Route:
+- `GET /files/:id/data` → Retrieves file content.
+2. Controller:
+- Return `404 Not Found` if:
+    - No file linked to the provided ID.
+    - File is not public (`isPublic: false`), user is unauthenticated, or not the owner.
+    - File is not locally present.
+- Return `400 Bad Request` if the file type is a folder.
+- Use `mime-types` to get the file's MIME-type.
+- eturn file content with the correct MIME-type.

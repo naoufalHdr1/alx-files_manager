@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ObjectId } from 'mongodb';
 import fs from 'fs';
 import path from 'path';
+import mime from 'mime-types';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
@@ -205,6 +206,37 @@ class FilesController {
       return res.status(200).json(updatedFile);
     } catch (err) {
       console.error('Error during updating file:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  static async getFile(req, res) {
+    const token = req.header('X-Token');
+    const { id } = req.params;
+
+    try {
+      // Find the file by ID
+      const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(id) });
+      if (!file || !file.isPublic) return res.status(404).json({ error: 'Not found' });
+
+      // Check if the file is a folder
+      if (file.type === 'folder') return res.status(400).json({ error: "A folder doesn't have content" });
+
+      // Validate public access or authenticated user
+      const userId = await redisClient.get(`auth_${token}`);
+      if (!userId || userId !== file.userId.toString()) return res.status(404).json({ error: 'Not found' });
+
+      // Check if the file exists locally
+      const { localPath } = file;
+      if (!localPath || !fs.existsSync(localPath)) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      // Get MIME type
+      const mimeType = mime.lookup(file.name) || 'application/octet-stream';
+      return res.status(200).set('Content-Type', mimeType).sendFile(path.resolve(localPath));
+    } catch (err) {
+      console.log('Error during getting file data:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
