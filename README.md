@@ -190,3 +190,13 @@ npm test
 - Authenticate via token (`401 Unauthorized` if invalid).
 - Return file document (`404 Not Found` if unavailable).
 - Support `parentId` (default: `0`) and pagination (20 items/page).
+
+### Task 7: File publihs/unpublish
+
+1. Routes:
+- `PUT /files/:id/publish` → Publish file (`isPublic: true`).
+- `PUT /files/:id/unpublish` → Unpublish file (`isPublic: false`).
+2. Controller:
+- Authenticate via token (`401 Unauthorized` if invalid).
+- Return `404 Not Found` if no file linked to user and ID.
+- Update and return file document (`200 OK`) with the updated `isPublic` status.

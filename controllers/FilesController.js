@@ -144,6 +144,70 @@ class FilesController {
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
+
+  static async putPublish(req, res) {
+    const token = req.header('X-Token');
+    const { id } = req.params;
+
+    try {
+      // Validate token
+      const userId = await redisClient.get(`auth_${token}`);
+      if (!userId) return res.status(401).res({ error: 'Unauthorized' });
+
+      // Check if the file exists and belongs to the user
+      const file = await dbClient.db.collection('files').findOne({
+        _id: ObjectId(id),
+        userId: ObjectId(userId),
+      });
+      if (!file) return res.status(404).res({ error: 'Not found' });
+
+      // Update isPublic to false
+      await dbClient.db.collection('files').updateOne(
+        { _id: ObjectId(id) },
+        { $set: { isPublic: true } },
+      );
+
+      // Retrieve the updated document
+      const updatedFile = await dbClient.db.collection('files').findOne({ _id: ObjectId(id) });
+
+      return res.status(200).json(updatedFile);
+    } catch (err) {
+      console.error('Error during updating file:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  static async putUnpublish(req, res) {
+    const token = req.header('X-Token');
+    const { id } = req.params;
+
+    try {
+      // Validate token
+      const userId = await redisClient.get(`auth_${token}`);
+      if (!userId) return res.status(401).res({ error: 'Unauthorized' });
+
+      // Check if the file exists and belongs to the user
+      const file = await dbClient.db.collection('files').findOne({
+        _id: ObjectId(id),
+        userId: ObjectId(userId),
+      });
+      if (!file) return res.status(404).res({ error: 'Not found' });
+
+      // Update isPublic to false
+      await dbClient.db.collection('files').updateOne(
+        { _id: ObjectId(id) },
+        { $set: { isPublic: false } },
+      );
+
+      // Retrieve the updated document
+      const updatedFile = await dbClient.db.collection('files').findOne({ _id: ObjectId(id) });
+
+      return res.status(200).json(updatedFile);
+    } catch (err) {
+      console.error('Error during updating file:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 }
 
 export default FilesController;
