@@ -237,8 +237,8 @@ class FilesController {
       }
 
       // Get MIME type
-      const mimeType = mime.lookup(file.name) || 'application/octet-stream';
-      return res.status(200).set('Content-Type', mimeType).sendFile(path.resolve(localPath));
+      const mimeType = mime.lookup(file.name);
+      return res.status(200).set('Content-Type', mimeType).sendFile(localPath);
     } catch (err) {
       console.log('Error during getting file data:', err);
       return res.status(500).json({ error: 'Internal server error' });
