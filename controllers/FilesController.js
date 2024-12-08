@@ -217,14 +217,18 @@ class FilesController {
     try {
       // Find the file by ID
       const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(id) });
-      if (!file || !file.isPublic) return res.status(404).json({ error: 'Not found' });
+      if (!file) return res.status(404).json({ error: 'Not found' });
 
       // Check if the file is a folder
       if (file.type === 'folder') return res.status(400).json({ error: "A folder doesn't have content" });
 
       // Validate public access or authenticated user
-      const userId = await redisClient.get(`auth_${token}`);
-      if (!userId || userId !== file.userId.toString()) return res.status(404).json({ error: 'Not found' });
+      if (!file.isPublic) {
+        const userId = await redisClient.get(`auth_${token}`);
+        if (!userId || userId !== file.userId.toString()) {
+          return res.status(404).json({ error: 'Not found' });
+        }
+      }
 
       // Check if the file exists locally
       const { localPath } = file;
