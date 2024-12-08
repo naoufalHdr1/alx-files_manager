@@ -152,14 +152,14 @@ class FilesController {
     try {
       // Validate token
       const userId = await redisClient.get(`auth_${token}`);
-      if (!userId) return res.status(401).res({ error: 'Unauthorized' });
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
       // Check if the file exists and belongs to the user
       const file = await dbClient.db.collection('files').findOne({
         _id: ObjectId(id),
         userId: ObjectId(userId),
       });
-      if (!file) return res.status(404).res({ error: 'Not found' });
+      if (!file) return res.status(404).json({ error: 'Not found' });
 
       // Update isPublic to false
       await dbClient.db.collection('files').updateOne(
@@ -184,14 +184,14 @@ class FilesController {
     try {
       // Validate token
       const userId = await redisClient.get(`auth_${token}`);
-      if (!userId) return res.status(401).res({ error: 'Unauthorized' });
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
       // Check if the file exists and belongs to the user
       const file = await dbClient.db.collection('files').findOne({
         _id: ObjectId(id),
         userId: ObjectId(userId),
       });
-      if (!file) return res.status(404).res({ error: 'Not found' });
+      if (!file) return res.status(404).json({ error: 'Not found' });
 
       // Update isPublic to false
       await dbClient.db.collection('files').updateOne(
