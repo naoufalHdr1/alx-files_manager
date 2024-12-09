@@ -4,10 +4,12 @@ import { ObjectId } from 'mongodb';
 import fs from 'fs';
 import path from 'path';
 import mime from 'mime-types';
+import Queue from 'bull';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
+const fileQueue = new Queue('fileQueue');
 
 class FilesController {
   /**
@@ -30,7 +32,11 @@ class FilesController {
       // Validate request body
       if (!name) return res.status(400).json({ error: 'Missing name' });
       if (!['folder', 'file', 'image'].includes(type)) return res.status(400).json({ error: 'Missing type' });
-      if (!data && type !== 'folder') return res.status(400).json({ error: 'Missing data' });
+      if (!data && type !== 'folder') {
+	    console.log("data:", data);
+	    console.log("type:", type);
+	      return res.status(400).json({ error: 'Missing data' });
+      }
 
       let parentObjectId = parentId;
       if (parentId !== '0') {
@@ -66,6 +72,9 @@ class FilesController {
       // Insert the file into the database
       const result = await dbClient.db.collection('files').insertOne(fileDocument);
       fileDocument.id = result.insertedId;
+
+      // Add job for thumbnail generation
+      if (type === 'image') fileQueue.add({ userId, fileId: fileDocument.id.toString() });
 
       return res.status(201).json({
         id: fileDocument.id.toString(),
@@ -213,10 +222,13 @@ class FilesController {
   static async getFile(req, res) {
     const token = req.header('X-Token');
     const { id } = req.params;
+    const { size } = req.query;
+    console.log('- size:', size);
 
     try {
       // Find the file by ID
       const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(id) });
+      console.log('- file:', file);
       if (!file) return res.status(404).json({ error: 'Not found' });
 
       // Check if the file is a folder
@@ -231,13 +243,16 @@ class FilesController {
       }
 
       // Check if the file exists locally
-      const { localPath } = file;
+      let { localPath } = file;
+      if (size) localPath = `${localPath}_${size}`;
+      console.log('- localPath:', localPath);
       if (!localPath || !fs.existsSync(localPath)) {
         return res.status(404).json({ error: 'Not found' });
       }
 
       // Get MIME type
       const mimeType = mime.lookup(file.name);
+      console.log('mime-type:', mimeType);
       return res.status(200).set('Content-Type', mimeType).sendFile(localPath);
     } catch (err) {
       console.log('Error during getting file data:', err);

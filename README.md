@@ -213,3 +213,15 @@ npm test
 - Return `400 Bad Request` if the file type is a folder.
 - Use `mime-types` to get the file's MIME-type.
 - eturn file content with the correct MIME-type.
+
+### Task 9: Image Thumbnails
+
+1. `POST /files` Updates:
+- Add a job to Bull `fileQueue` for images with `userId` and `fileId`.
+2. `worker.js`:
+- Process `fileQueue`:
+    - Raise errors for missing `fileId`, `userId`, or nonexistent file.
+    - Generate 3 thumbnails (`500px`, `250px`, `100px`) using `image-thumbnail` and save alongside the original file.
+3. `GET /files/:id/data` Updates:
+- Accept `size` (`500`, `250`, `100`) as a query.
+- Return the corresponding thumbnail or `404 Not Found` if it doesn’t exist.
