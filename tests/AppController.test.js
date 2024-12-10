@@ -1,4 +1,4 @@
-// tests/appController.test.js
+// tests/AppController.test.js
 import chai from 'chai';
 import chaiHttp from 'chai-http';
 import AppController from '../controllers/AppController'
