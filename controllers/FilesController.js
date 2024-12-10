@@ -32,11 +32,7 @@ class FilesController {
       // Validate request body
       if (!name) return res.status(400).json({ error: 'Missing name' });
       if (!['folder', 'file', 'image'].includes(type)) return res.status(400).json({ error: 'Missing type' });
-      if (!data && type !== 'folder') {
-	    console.log("data:", data);
-	    console.log("type:", type);
-	      return res.status(400).json({ error: 'Missing data' });
-      }
+      if (!data && type !== 'folder') return res.status(400).json({ error: 'Missing data' });
 
       let parentObjectId = parentId;
       if (parentId !== '0') {

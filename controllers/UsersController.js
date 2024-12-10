@@ -1,4 +1,4 @@
-// controllers/UsersControllers.js
+// controllers/UsersController.js
 import sha1 from 'sha1';
 import dbClient from '../utils/db';
 
@@ -10,8 +10,6 @@ class UsersController {
    * @param {Object} res - The response object.
    */
   static async postNew(req, res) {
-    console.log(req.body.email);
-    console.log(req.body.password);
     const { email, password } = req.body;
 
     // Validate email

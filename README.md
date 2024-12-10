@@ -225,3 +225,20 @@ npm test
 3. `GET /files/:id/data` Updates:
 - Accept `size` (`500`, `250`, `100`) as a query.
 - Return the corresponding thumbnail or `404 Not Found` if it doesn’t exist.
+
+### Task 10: Tests!
+
+1. Create tests for `redisClient` and `dbClient`.
+2. Create tests for each endpoints:
+- `GET /status`
+- `GET /stats`
+- `POST /users`
+- `GET /connect`
+- `GET /disconnect`
+- `GET /users/me`
+- `POST /files`
+- `GET /files/:id`
+- `GET /files` (don’t forget the pagination)
+- `PUT /files/:id/publish`
+- `PUT /files/:id/unpublish`
+- `GET /files/:id/data`
