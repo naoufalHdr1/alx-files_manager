@@ -19,6 +19,7 @@ import sinon from 'sinon';
 import fs from 'fs';
 import { ObjectId } from 'mongodb';
 import path from 'path';
+import mime from 'mime-types';
 
 chai.use(chaiHttp);
 const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager_test';
@@ -61,16 +62,18 @@ describe('FilesController Endpoints', () => {
     const user = await dbClient.db.collection('users').insertOne(testUser);
     userId = user.insertedId;
 
-    // Create a test file 
-    const testFile = {userId, name: 'Test File', type: 'file', data, parentId};
+    // Create a test file in database and disk
+    const localPath = path.join(folderPath, uuidv4());
+    const testFile = {userId, name: 'TestFile.txt', type: 'file', data, parentId, localPath};
     const file = await dbClient.db.collection('files').insertOne(testFile);
     fileId = file.insertedId;
+    fs.writeFileSync(localPath, Buffer.from(data, 'base64'));
 
     // Simulate authentication token
     authToken = uuidv4();
     await redisClient.set(`auth_${authToken}`, userId.toString(), 24*60*60);
 
-    // Stubbing database methods
+    // create mutiple files for pagination testing
     const numFiles = 25;
     await insertTestFiles(numFiles, userId, parentId);
   });
@@ -373,7 +376,7 @@ describe('FilesController Endpoints', () => {
   });
 
   describe('PUT /files/:id/unpublish', () => {
-    it('should return 401 if token is missing', (done) => {
+    it('should return 401 if token is invalid or missing', (done) => {
       chai
         .request(app)
         .put(`/files/${fileId}/unpublish`)
@@ -387,7 +390,7 @@ describe('FilesController Endpoints', () => {
     it('should return 404 if file is not found', (done) => {
       chai
         .request(app)
-        .put(`/files/${new ObjectId()}/unpublish`)
+        .put(`/files/${fakeId}/unpublish`)
         .set('X-Token', authToken)
         .end((err, res) => {
           expect(res).to.have.status(404);
@@ -406,6 +409,83 @@ describe('FilesController Endpoints', () => {
           expect(res.body.isPublic).to.be.false;
           expect(res.body._id).to.equal(fileId.toString());
           expect(res.body.userId).to.equal(userId.toString());
+          done();
+        });
+    });
+  });
+
+  describe('FilesController - GET /files/:id/data', () => {
+    it('should return 404 if the file does not exist', (done) => {
+      chai.request(app)
+        .get(`/files/${fakeId}/data`)
+        .set('X-Token', authToken)
+        .end((err, res) => {
+          expect(res).to.have.status(404);
+          expect(res.body.error).to.equal('Not found');
+          done();
+        });
+    });
+
+    it('should return 400 if the file is a folder', async () => {
+      // Seed a folder in the database
+      const folderId = (await dbClient.db.collection('files').insertOne({
+        userId,
+        name: 'test-folder',
+        type: 'folder',
+      })).insertedId;
+
+      const res = await chai.request(app)
+        .get(`/files/${folderId}/data`)
+        .set('X-Token', authToken);
+      expect(res).to.have.status(400);
+      expect(res.body.error).to.equal("A folder doesn't have content");
+    });
+
+    it('should return 404 if the file is not public and the user is unauthorized', (done) => {
+      chai.request(app)
+        .get(`/files/${fileId}/data`)
+        .set('X-Token', 'invalid_token')
+        .end((err, res) => {
+          expect(res).to.have.status(404);
+          expect(res.body.error).to.equal('Not found');
+          done();
+        });
+    });
+
+    it('should return 404 if the file does not exist locally', (done) => {
+      chai.request(app)
+        .get(`/files/${fileId}/data`)
+        .set('X-Token', authToken)
+        .query({ size: 'small' })
+        .end((err, res) => {
+          expect(res).to.have.status(404);
+          expect(res.body.error).to.equal('Not found');
+          done();
+        });
+    });
+
+    it('should return 200 and the file if it is public', async () => {
+      // Update isPublic to true before testing
+      await dbClient.db.collection('files').updateOne(
+        { _id: fileId },
+        { $set: { isPublic: true } },
+      );
+      
+      const res = await chai.request(app)
+        .get(`/files/${fileId}/data`)
+      expect(res).to.have.status(200);
+      expect(res.header['content-type']).to.equal('text/plain; charset=utf-8');
+      expect(res.text).to.equal('Hello Webstack!\n');
+    });
+
+    it('should return 200 and the file if the user is authorized', (done) => {
+      chai.request(app)
+        .get(`/files/${fileId}/data`)
+        .set('X-Token', authToken)
+        .end((err, res) => {
+          expect(res).to.have.status(200);
+          expect(res.header['content-type']).to.equal('text/plain; charset=utf-8');
+          expect(res.text).to.equal('Hello Webstack!\n');
           done();
         });
     });
