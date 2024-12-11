@@ -23,12 +23,27 @@ import path from 'path';
 chai.use(chaiHttp);
 const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager_test';
 
+// Helper function to insert test files
+const insertTestFiles = async (numFiles, userId, parentId) => {
+  const filesCollection = dbClient.db.collection('files');  
+
+  const testFiles = Array.from({ length: numFiles }, (_, i) => ({
+    userId,
+    parentId,
+    name: `File ${i + 1}`,
+    type: 'file',
+  }));
+
+  await filesCollection.insertMany(testFiles);
+};
+
 describe('FilesController Endpoints', () => {
   let authToken;
   let userId;
   let fileId;
   let data = 'SGVsbG8gV2Vic3RhY2shCg==';
   const fakeId = 'aaaaaaaaaaaaaaaaaaaaaaaa'
+  const parentId = new ObjectId();
 
   before(async () => {
     if (!fs.existsSync(folderPath)) {
@@ -47,7 +62,7 @@ describe('FilesController Endpoints', () => {
     userId = user.insertedId;
 
     // Create a test file 
-    const testFile = {userId, name: 'Test File', type: 'file', data };
+    const testFile = {userId, name: 'Test File', type: 'file', data, parentId};
     const file = await dbClient.db.collection('files').insertOne(testFile);
     fileId = file.insertedId;
 
@@ -56,6 +71,8 @@ describe('FilesController Endpoints', () => {
     await redisClient.set(`auth_${authToken}`, userId.toString(), 24*60*60);
 
     // Stubbing database methods
+    const numFiles = 25;
+    await insertTestFiles(numFiles, userId, parentId);
   });
 
   after(async () => {
@@ -63,6 +80,9 @@ describe('FilesController Endpoints', () => {
     await dbClient.db.collection('users').deleteMany({});
     await dbClient.db.collection('files').deleteMany({});
     await redisClient.del(`auth_${authToken}`);
+
+    // Drop the database
+    await dbClient.db.dropDatabase();
 
     fs.rmSync(folderPath, { recursive: true, force: true });
   });
@@ -248,6 +268,69 @@ describe('FilesController Endpoints', () => {
           done();
         });
     });
+  });
 
+  describe('GET /files', () => {
+    it('Should return 401 if the token is missing or invalid', (done) => {
+      chai.request(app)
+        .get('/files')
+        .end((err, res) => {
+          expect(res).to.have.status(401);
+          expect(res.body).to.have.property('error', 'Unauthorized');
+          done();
+        });
+    });
+
+    it('Should retrieve files for a specific parentId', (done) => {
+      chai.request(app)
+        .get('/files')
+        .set('X-Token', authToken)
+        .query({ parentId: parentId.toString() })
+        .end((err, res) => {
+          expect(res).to.have.status(200);
+          expect(res.body).to.be.an('array').that.have.length(20);
+          // Verify that all retrieved files have the correct parentId
+          res.body.forEach((file) => {
+            expect(file).to.have.property('parentId', parentId.toString());
+            expect(file).to.have.property('userId', userId.toString());
+          })
+          done();
+        });
+    });
+
+    it('Should paginate results', async () => {
+      // Fetch page 0
+      const resPage1 = await chai.request(app)
+        .get('/files')
+        .set('X-Token', authToken)
+        .query({ parentId: parentId.toString(), page: 0 });
+      expect(resPage1).to.have.status(200);
+      expect(resPage1.body).to.be.an('array').that.have.length(20);
+      resPage1.body.forEach((file) => {
+        expect(file).to.have.property('parentId', parentId.toString());
+        expect(file).to.have.property('userId', userId.toString());
+      });
+
+      // Fetch page 1
+      const resPage2 = await chai.request(app)
+        .get('/files')
+        .set('X-Token', authToken)
+        .query({ parentId: parentId.toString(), page: 1 });
+      expect(resPage2).to.have.status(200);
+      const count = await dbClient.db.collection('files').countDocuments({ parentId });
+      expect(resPage2.body).to.be.an('array').that.have.length(count - 20);
+      resPage2.body.forEach((file) => {
+        expect(file).to.have.property('parentId', parentId.toString());
+        expect(file).to.have.property('userId', userId.toString());
+      });
+
+      // Fetch page 2 (beyond the total number of documents)
+      const resPage3 = await chai.request(app)
+        .get('/files')
+        .set('X-Token', authToken)
+        .query({ parentId: parentId.toString(), page: 2 });
+      expect(resPage3).to.have.status(200);
+      expect(resPage3.body).to.be.an('array').that.is.empty;
+    });
   });
 });
