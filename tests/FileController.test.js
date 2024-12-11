@@ -4,6 +4,9 @@
  * To avoids accidental deletion of production or important data you:
  * should create env variable "FOLDER_PATH='/tmp/file_manager_test'"
  * should create env variable "DB_DATABASE='/files_manager_test'"
+ * 
+ * ALERT: 
+ * double-check the path you provide to avoid deleting critical data accidentally.
  */
 
 import chai, { expect } from 'chai';
@@ -20,27 +23,17 @@ import path from 'path';
 chai.use(chaiHttp);
 const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager_test';
 
-// read the directory's contents and then delete each file
-const deleteAllFiles = (dirPath) => {
-  try {
-    const files = fs.readdirSync(folderPath);
-    files.forEach((file) => {
-      const filePath = path.join(folderPath, file);
-      fs.unlinkSync(filePath);
-    });
-  } catch (err) {
-    console.error('Error deleting files:', err);
-  }
-};
-
 describe('FilesController Endpoints', () => {
   let authToken;
   let userId;
   let fileId;
   let data = 'SGVsbG8gV2Vic3RhY2shCg==';
+  const fakeId = 'aaaaaaaaaaaaaaaaaaaaaaaa'
 
   before(async () => {
-    deleteAllFiles(folderPath);
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
 
     // Ensure the database connection is established
     await dbClient.connectionPromise;
@@ -48,13 +41,14 @@ describe('FilesController Endpoints', () => {
     await dbClient.db.collection('users').deleteMany({});
     await dbClient.db.collection('files').deleteMany({});
 
+    // Create a test user 
     const testUser = { email: 'test@example.com', password: 'pwd123' };
-    const testFile = {name: 'Test File', type: 'file', data };
-
     const user = await dbClient.db.collection('users').insertOne(testUser);
-    const file = await dbClient.db.collection('files').insertOne(testFile);
-
     userId = user.insertedId;
+
+    // Create a test file 
+    const testFile = {userId, name: 'Test File', type: 'file', data };
+    const file = await dbClient.db.collection('files').insertOne(testFile);
     fileId = file.insertedId;
 
     // Simulate authentication token
@@ -70,7 +64,7 @@ describe('FilesController Endpoints', () => {
     await dbClient.db.collection('files').deleteMany({});
     await redisClient.del(`auth_${authToken}`);
 
-    deleteAllFiles(folderPath);
+    fs.rmSync(folderPath, { recursive: true, force: true });
   });
 
   describe('POST /files', () => {
@@ -146,7 +140,6 @@ describe('FilesController Endpoints', () => {
     });
     
     it('Should return 400 if parentId is invalid', (done) => {
-      const fakeId = 'aaaaaaaaaaaaaaaaaaaaaaaa'
       chai.request(app)
         .post('/files')
         .send({name: 'Test File', type: 'file', data, parentId: fakeId})
@@ -220,5 +213,41 @@ describe('FilesController Endpoints', () => {
         });
     });
   });
+  
+  describe('GET /files/:id', () => {
+    it('should return 401 if the token is missing or invalid', (done) => {
+      chai.request(app)
+        .get(`/files/${fileId.toString()}`)
+        .end((err, res) => {
+          expect(res).to.have.status(401);
+          expect(res.body).to.have.property('error', 'Unauthorized');
+          done();
+        });
+    });
 
+    it('should return 404 if the file does not exist', (done) => {
+      chai.request(app)
+        .get(`/files/${fakeId.toString()}`)
+        .set('X-Token', authToken)
+        .end((err, res) => {
+          expect(res).to.have.status(404);
+          expect(res.body).to.have.property('error', 'Not found');
+          done();
+        });
+    });
+
+    it('should retrieve a file successfully', (done) => {
+      chai.request(app)
+        .get(`/files/${fileId.toString()}`)
+        .set('X-Token', authToken)
+        .end((err, res) => {
+          expect(res).to.have.status(200);
+          expect(res.body).to.be.a('object');
+          expect(res.body).to.have.property('_id', fileId.toString());
+          expect(res.body).to.have.property('userId', userId.toString());
+          done();
+        });
+    });
+
+  });
 });
