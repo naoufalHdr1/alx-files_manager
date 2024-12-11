@@ -333,4 +333,81 @@ describe('FilesController Endpoints', () => {
       expect(resPage3.body).to.be.an('array').that.is.empty;
     });
   });
+
+  describe('PUT /files/:id/publish', () => {
+    it('should return 401 if token is missing or invalid', (done) => {
+      chai.request(app)
+        .put(`/files/${fileId}/publish`)
+        .end((err, res) => {
+          expect(res).to.have.status(401);
+          expect(res.body.error).to.equal('Unauthorized');
+          done();
+        });
+    });
+
+    it('should return 404 if file is not found', (done) => {
+      chai
+        .request(app)
+        .put(`/files/${new ObjectId()}/publish`)
+        .set('X-Token', authToken)
+        .end((err, res) => {
+          expect(res).to.have.status(404);
+          expect(res.body.error).to.equal('Not found');
+          done();
+        });
+    });
+
+    it('should publish the file and return the updated file', (done) => {
+      chai
+        .request(app)
+        .put(`/files/${fileId}/publish`)
+        .set('X-Token', authToken)
+        .end((err, res) => {
+          expect(res).to.have.status(200);
+          expect(res.body.isPublic).to.be.true;
+          expect(res.body._id).to.equal(fileId.toString());
+          expect(res.body.userId).to.equal(userId.toString());
+          done();
+        });
+    });
+  });
+
+  describe('PUT /files/:id/unpublish', () => {
+    it('should return 401 if token is missing', (done) => {
+      chai
+        .request(app)
+        .put(`/files/${fileId}/unpublish`)
+        .end((err, res) => {
+          expect(res).to.have.status(401);
+          expect(res.body.error).to.equal('Unauthorized');
+          done();
+        });
+    });
+
+    it('should return 404 if file is not found', (done) => {
+      chai
+        .request(app)
+        .put(`/files/${new ObjectId()}/unpublish`)
+        .set('X-Token', authToken)
+        .end((err, res) => {
+          expect(res).to.have.status(404);
+          expect(res.body.error).to.equal('Not found');
+          done();
+        });
+    });
+
+    it('should unpublish the file and return the updated file', (done) => {
+      chai
+        .request(app)
+        .put(`/files/${fileId}/unpublish`)
+        .set('X-Token', authToken)
+        .end((err, res) => {
+          expect(res).to.have.status(200);
+          expect(res.body.isPublic).to.be.false;
+          expect(res.body._id).to.equal(fileId.toString());
+          expect(res.body.userId).to.equal(userId.toString());
+          done();
+        });
+    });
+  });
 });
