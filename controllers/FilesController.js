@@ -32,7 +32,8 @@ class FilesController {
       // Validate request body
       if (!name) return res.status(400).json({ error: 'Missing name' });
       if (!['folder', 'file', 'image'].includes(type)) return res.status(400).json({ error: 'Missing type' });
-      if (!data && type !== 'folder') return res.status(400).json({ error: 'Missing data' });
+      if ((data && type === 'folder') || (!data && type !== 'folder'))
+        return res.status(400).json({ error: 'Missing data' });
 
       let parentObjectId = parentId;
       if (parentId !== '0') {
@@ -219,12 +220,10 @@ class FilesController {
     const token = req.header('X-Token');
     const { id } = req.params;
     const { size } = req.query;
-    console.log('- size:', size);
 
     try {
       // Find the file by ID
       const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(id) });
-      console.log('- file:', file);
       if (!file) return res.status(404).json({ error: 'Not found' });
 
       // Check if the file is a folder
@@ -241,17 +240,15 @@ class FilesController {
       // Check if the file exists locally
       let { localPath } = file;
       if (size) localPath = `${localPath}_${size}`;
-      console.log('- localPath:', localPath);
       if (!localPath || !fs.existsSync(localPath)) {
         return res.status(404).json({ error: 'Not found' });
       }
 
       // Get MIME type
       const mimeType = mime.lookup(file.name);
-      console.log('mime-type:', mimeType);
       return res.status(200).set('Content-Type', mimeType).sendFile(localPath);
     } catch (err) {
-      console.log('Error during getting file data:', err);
+      console.error('Error during getting file data:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }

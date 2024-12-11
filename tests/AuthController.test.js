@@ -8,37 +8,21 @@ import sha1 from 'sha1';
 
 chai.use(chaiHttp);
 
-const waitForConnection = async () => {
-  let retries = 5; // Number of retries
-  const delay = 500; // Delay between retries in milliseconds
-
-  while (retries > 0) {
-    if (dbClient.isConnected && dbClient.db) {
-      return; // Connection established
-    }
-    retries -= 1;
-    // Wait for the delay
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
-
-  throw new Error('Failed to connect to the database');
-};
-
 describe('AuthController Endpoints', () => {
   let authToken;
   let userId;
 
   before(async () => {
-
-    await waitForConnection();
+    // Ensure the database connection is established
+    await dbClient.connectionPromise
     await dbClient.db.collection('users').deleteMany({});
 
-    // Create a test user for the /connect, /disconnect, and /users/me tests
     const testUser = {
       email: 'test@example.com',
       password: sha1('password123'),
     }
-    await dbClient.db.collection('users').insertOne(testUser);
+    const result = await dbClient.db.collection('users').insertOne(testUser);
+	  userId = result.insertedId;
   });
 
   after(async () => {
@@ -93,7 +77,7 @@ describe('AuthController Endpoints', () => {
         .set('X-Token', authToken)
         .end((err, res) => {
           expect(res).to.have.status(200);
-          expect(res.body).to.have.property('id');
+          expect(res.body).to.have.property('id', userId.toString());
           expect(res.body).to.have.property('email', 'test@example.com');
           done();
         });

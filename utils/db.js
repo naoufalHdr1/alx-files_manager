@@ -16,14 +16,19 @@ class DBClient {
     this.isConnected = false;
 
     // Establish connection & Check if it's successful
-    this.client.connect((err) => {
-      if (err) {
-        console.error('Failed to connect to MongoDB:', err);
-        this.isConnected = false;
-      } else {
-        this.isConnected = true;
-        this.db = this.client.db(database);
-      }
+    // Create a promise to handle async connection
+    this.connectionPromise = new Promise((resolve, reject) => {
+      this.client.connect((err) => {
+        if (err) {
+          console.error('Failed to connect to MongoDB:', err);
+          this.isConnected = false;
+          reject(err);
+        } else {
+          this.isConnected = true;
+          this.db = this.client.db(database);
+          resolve();
+        }
+      });
     });
   }
 
