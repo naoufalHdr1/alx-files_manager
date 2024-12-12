@@ -199,7 +199,7 @@ describe('FilesController Endpoints', () => {
           expect(res.body).to.have.property('name').that.equal('Test File');
           expect(res.body).to.have.property('type').that.equal('file');
           expect(res.body).to.have.property('isPublic').that.is.a('boolean');
-          expect(res.body).to.have.property('parentId').that.is.a('string');
+          expect(res.body).to.have.property('parentId').that.equal(0);
           const file = await dbClient.db.collection('files').findOne({
             _id: ObjectId(res.body.id),
           });
@@ -226,7 +226,7 @@ describe('FilesController Endpoints', () => {
           expect(res.body).to.have.property('name').that.equal('Test Folder');
           expect(res.body).to.have.property('type').that.equal('folder');
           expect(res.body).to.have.property('isPublic').that.is.a('boolean');
-          expect(res.body).to.have.property('parentId').that.is.a('string');
+          expect(res.body).to.have.property('parentId').that.equal(0);
           const dir = await dbClient.db.collection('files').findOne({
             _id: ObjectId(res.body.id),
           });

@@ -32,8 +32,7 @@ class FilesController {
       // Validate request body
       if (!name) return res.status(400).json({ error: 'Missing name' });
       if (!['folder', 'file', 'image'].includes(type)) return res.status(400).json({ error: 'Missing type' });
-      if ((data && type === 'folder') || (!data && type !== 'folder'))
-        return res.status(400).json({ error: 'Missing data' });
+      if ((data && type === 'folder') || (!data && type !== 'folder')) return res.status(400).json({ error: 'Missing data' });
 
       let parentObjectId = parentId;
       if (parentId !== '0') {
@@ -79,7 +78,7 @@ class FilesController {
         name: fileDocument.name,
         type: fileDocument.type,
         isPublic: fileDocument.isPublic,
-        parentId: fileDocument.parentId.toString(),
+        parentId: parseInt(fileDocument.parentId, 10),
       });
     } catch (err) {
       console.error('Error during file upload:', err);
