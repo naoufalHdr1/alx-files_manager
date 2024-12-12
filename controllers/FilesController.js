@@ -49,7 +49,7 @@ class FilesController {
         name,
         type,
         isPublic,
-        parentId: parentId === '0' ? '0' : parentObjectId,
+        parentId: parentId === '0' ? 0 : parentObjectId,
       };
 
       // Process file or image type
@@ -78,7 +78,7 @@ class FilesController {
         name: fileDocument.name,
         type: fileDocument.type,
         isPublic: fileDocument.isPublic,
-        parentId: parseInt(fileDocument.parentId, 10),
+        parentId: fileDocument.parentId,
       });
     } catch (err) {
       console.error('Error during file upload:', err);
